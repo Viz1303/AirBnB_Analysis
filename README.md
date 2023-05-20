@@ -2,6 +2,9 @@
 
 This project focuses on analyzing the performance of the Airbnb market in New York City. By leveraging Airbnb listings data, we aim to gain valuable insights into the factors contributing to Airbnb's success and understand the dynamics of the lodging industry.
 
+![Alt Text](https://github.com/Viz1303/AirBnB_Analysis/blob/main/images/WhatsApp%20Image%202023-02-12%20at%2021.14.25.jpg?raw=true)
+
+
 ### Key Features:
 
 * Utilization of neighborhood information, latitude, and other relevant features to assess the economic impact of the lodging industry.
