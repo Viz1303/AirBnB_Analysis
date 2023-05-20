@@ -1,0 +1,420 @@
+---
+title: 'IE6600 Sec01 Group7: Hackathon'
+author: 'Shaswat Sinha, Vishal Arasu, Usashi Roy'
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Analysis and Visualization of Airbnb, New York
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+```{r libraries, include= FALSE}
+# Importing require libraries
+library(plotly)
+library(corrplot)
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+library(magrittr)
+library(treemap)
+library(gridExtra)
+library(ggalluvial)
+library(RColorBrewer)
+library(leaflet)
+library(ggalluvial)
+library(treemapify)
+library(htmlwidgets)
+library(htmltools)
+
+# Introducing color palette
+gradient <- c("#003f5c", "#2f4b7c", "#665191", "#a05195", "#d45087", "#f95d6a", "#ff7c43", "#ffa600", "#cc630a", "#ba452f")
+
+# Setting the woring directory
+setwd("C:/Users/Usashi Roy/Desktop/Comps and Viz/Hackathon/Airbnb_Open_Data.csv")
+```
+
+```{r preprocessing, include=FALSE}
+
+# Loading the dataset
+airbnb <- read.csv("C:/Users/Usashi Roy/Desktop/Comps and Viz/Hackathon/Airbnb_Open_Data.csv/Airbnb_Open_Data.csv")
+
+# Removing irrelevant columns
+air <- subset(airbnb, select = -c(country , country.code, license, house_rules))
+
+# Filling empty records with NA and omitting
+air[air == ''] <- NA
+air_df <- na.omit(air)
+
+# Removing '$' and changing the data type from character to numeric. 
+air_df$price <- gsub('[^[:alnum:] ]','',air_df$price)
+air_df$price <- as.numeric(air_df$price)
+typeof(air_df$price)
+
+air_df$service.fee <- gsub('[^[:alnum:] ]','',air_df$service.fee)
+air_df$service.fee <- as.numeric(air_df$service.fee)
+
+# Replacing 'brookln' with 'Brooklyn'
+air_df$neighbourhood.group[air_df$neighbourhood.group == "brookln"] <- "Brooklyn"
+```
+
+![](images/WhatsApp%20Image%202023-02-12%20at%2021.14.25.jpg)
+
+## Introduction and Problem Statement
+
+Airbnb is an online marketplace for home rentals that has rapidly become one of the most successful and innovative startups of the 21st century. With over 4 million listings in over 190 countries, Airbnb has disrupted the traditional hotel industry and created a new way for people to travel and experience different cultures. In recent times, the lodging industry's economy has grown immensely, and Airbnb has been in the forefront of it all and has been widely considered as one of the most in demand companies in this space. As more and more individuals have developed an interest towards travel post pandemic, the demand for lodging has increased. To better understand this market, we have analysed Airbnb listings in a specific city.
+
+From the Airbnb dataset that was provided, we gain a deeper understanding of the factors that have contributed to Airbnb's success and the lessons that can be learned from its journey,. We will gain insights into the current state of the sharing economy. The dataset describes the listing activity of home stays in New York City since 2003 to 2022. Some of the information provided in this dataset are : room type, neighbourhood, latitude, longitude, price of listing, etc. The features we have used are : **neighbourhood groups,** **neighbourhoods , latitude, longitude, price, review ratings, room type.**
+
+This report is divided into three sections. The three sections we explored are :
+
+1.  Distribution of listings across different neighbourhoods.
+
+2.  Average price and service fee.
+
+3.  Location popularity based on reviews, neighbourhoods and price.
+
+## About the dataset
+
+Since 2008, both travelers and hosts have utilized Airbnb to experience more distinctive, customized travel. This dataset represents the listing activity of homestays in New York City as part of the Airbnb Inside project.
+
+This New York dataset includes the following Airbnb activity:
+
+Listings with complete descriptions and the overall rating of the reviews Reviews with a unique ID for each reviewer and thorough remarks Calendar with listing id, price, and availability for that particular day.
+
+Source: <https://www.kaggle.com/datasets/arianazmoudeh/airbnbopendata>
+
+## Section 1: City Accomodation: A Demographic Study of Hotels in New York
+
+#### Q1. What is the distribution of Airbnbs in New York as per boroughs and their neighbourhoods?
+
+```{r section 1a, echo=FALSE, warning= FALSE, message=FALSE}
+# Grouping the dataframe by neighbourhoods to find their count
+df_grouped <- air_df %>% 
+  group_by(neighbourhood.group, neighbourhood) %>% 
+  summarise(count = n())
+
+tm <-  ggplot(df_grouped, aes(area=count, label=paste(neighbourhood, count, sep = "\n"), subgroup=neighbourhood.group, fill=neighbourhood.group)) + # plot the distribution graph
+        geom_treemap() + scale_fill_manual(values = gradient) +
+        ggtitle("Number of Airbnb listings in New York by Neighborhood") +  #assign the title
+        geom_treemap_text(colour = "white", place = "centre", grow = FALSE) +   geom_treemap_subgroup_text(place = "centre", grow = TRUE,
+                             alpha = 0.25, colour = "black",
+                             fontface = "italic") +
+  theme(title = element_text(size = 15), legend.title = element_text(size = 10), legend.text = element_text(size=7))
+ 
+tm
+```
+
+**Insight:** The treemap shows the number of Airbnb rentals distributed across the different neighbourhoods of New York. It can be observed that most of the Airbnbs are present in Manhattan and Brooklyn as most of the tourist places are located in those locations.
+
+#### Q2. Which neighbourhoods in New york have the highest number of Airbnb Rentals?
+
+```{r section 1b, echo=FALSE, warning= FALSE, message=FALSE}
+# Subsetting the dataframe
+neighbour <- subset(air_df, select = c(neighbourhood))
+
+# Grouping the top 10 neighbourhoods
+neighbour1 <- neighbour %>% group_by(neighbourhood)  %>% summarise(count=n()) %>% top_n(10) %>% arrange(desc(count))
+
+# Plotting the bar graph of top 10 Neighbourhoods
+plot_bar2 <- ggplot(data=neighbour1, aes(x=neighbourhood, y=count, fill=neighbourhood)) + geom_bar( stat = "identity") +theme_bw()+ scale_fill_manual(values=c("#003f5c","#2f4b7c","#665191","#a05195","#d45087","#f95d6a","#ff7c43","#ffa600","#cc630a","#ba452f")) +labs(title = "Top 10 neighbourhood with most Airbnb Rentals") +scale_x_discrete(guide = guide_axis(n.dodge=3))
+
+plot_bar2
+```
+
+**Insight:** To get a deeper insight we plotted a bar chart to find the prime neighbourhoods where tourist prefer to stay. It can be noticed that Bedford is the most popular neighbourhood followed by Williamsburg and Harlem.
+
+#### Q3. Which boroughs have the most available Airbnb rooms in New York?
+
+```{r section 1c, echo=FALSE, warning= FALSE, message=FALSE}
+# Subsetting the dataframe
+room <- subset(air_df, select = c(neighbourhood.group, availability.365))
+
+# plotting denistiy distribution graph
+p2 <- ggplot(data=room, aes(x=availability.365, group=neighbourhood.group, fill=neighbourhood.group)) +
+  geom_density(adjust=1.5, alpha=0.6) + xlim(0,600) + scale_fill_manual(values=c("#003f5c","#665191", "#048dcc","#ffa600","#ba452f")) + labs(title = "Density Distribution of Available Rooms across the Boroughs")
+p2
+```
+
+**Insight:** Based on the visualization it can be concluded that Staten Island and Bronx have the highest room availability. These locations are less popular as compared to the busier boroughs Manhattan and Brooklyn.
+
+## Section 2: Understanding the Distribution of Airbnb Prices in New York City
+
+#### Q1. What is average price of Airbnbs for each neighbourhood in New York?
+
+**Average Price as per Neighbourhoods**
+
+```{r section2a, echo=FALSE, warning= FALSE, message=FALSE}
+
+# Making html heading for leaflet
+tag.map.title <- tags$style(HTML("
+  .leaflet-control.map-title { 
+    transform: translate(-50%,20%);
+    position: fixed !important;
+    left: 30%;
+    text-align: center;
+    padding-left: 10px; 
+    padding-right: 10px; 
+    background: rgba(255,255,255,0.75);
+    font-weight: bold;
+    font-size: 20px;
+    color:black
+  }
+"))
+
+
+# Slicing the dataframe to find the first values of each neighbourhood
+nbhd2 <- air_df %>%
+  group_by(neighbourhood) %>%
+  slice_head(n = 1)
+# Considering the latitudes and longitudes
+nbhd2 <- subset(nbhd2, select = c('neighbourhood', 'lat', 'long'))
+
+# Grouping by neighbourhoods to summarise the mean price
+avg_price <- air_df %>% group_by(neighbourhood) %>% summarise(price = mean(price))
+
+# Merging the average price(avg_price) and neighbourhood(nbhd2) dataframes
+avg_price <- merge(avg_price, nbhd2, by = 'neighbourhood')
+avg_price$price <- round(avg_price$price, 2)
+
+# Declaring the hover labels
+nbd2_label <- paste("<strong>Neigbourhood: </strong>", avg_price$neighbourhood,
+                   "<br><strong>Average Price: </strong>", avg_price$price) %>% lapply(htmltools::HTML)
+
+# Decalring the color palette
+domain <- range(avg_price$price)
+pal <- colorNumeric(palette = gradient, domain = domain)
+
+# Declaring the title
+title <- tags$div(
+  tag.map.title, HTML("Average Price as per Neighbourhoods")
+)  
+
+# Plotting leaflet map of average price as per neighbourhood
+leaflet(avg_price) %>%
+  addTiles() %>%
+  setView(-74.00, 40.71, zoom = 9.5) %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  addCircleMarkers(lat = avg_price$lat, lng = avg_price$long, radius = 1, label = nbd2_label,color = ~pal(price), opacity=1) %>% addLegend(pal = pal, values = ~price, opacity = 10, title = "Average Price", position = "topleft") %>%addControl(title, position = "topleft", className="map-title")
+```
+
+**Insight:** The **interactive** geographic map can assist visitors in locating less expensive lodging options in various neighborhoods. Neighborhoods north of the Bronx and south of Staten Island are often less expensive than other neighborhoods throughout the city.
+
+#### Q2. What are the average prices depending on the types of room? Does it differ from borough to borough?
+
+```{r section 2b, echo=FALSE, warning= FALSE, message=FALSE}
+
+gradient2 <- c("#665191",
+              "#048dcc",
+              "#ffa600",
+              "#ba452f"
+              )
+
+# Subsetting the dataframe
+pplot <- subset(air_df, select = c(neighbourhood.group, room.type, price, review.rate.number))
+
+# Declaring the standard fonts and font size
+tema1 <- theme(
+  plot.title = element_text(size = 15, hjust = .5, face = "bold"),
+  axis.text.x = element_text(size = 4, face = "bold"),
+  axis.text.y = element_text(size = 4, face = "bold"),
+  axis.title.x = element_text(size = 15, face = "bold"),
+  axis.title.y = element_text(size = 15, face = "bold"),
+  legend.position = "none")
+
+options(repr.plot.width=15, repr.plot.height=6)
+options(warn=-1)
+```
+
+```{r section 2b .2, echo=FALSE, warning= FALSE, message=FALSE}
+# Plotting individual polar charts for boroughs and airbnb types
+### Brooklyn ####
+pBrooklyn <- pplot %>%
+  group_by(room.type) %>%
+  filter(neighbourhood.group == "Brooklyn") %>%
+  select(room.type, price, review.rate.number)
+
+Bmean_room_type <- aggregate(list(Baverage_price = pBrooklyn$price), list(Broom_type = pBrooklyn$room.type), mean)
+
+brooklyn <- ggplot(data = Bmean_room_type, aes(x=Broom_type, y=Baverage_price)) +
+  geom_segment(aes(xend=Broom_type, yend=0, color = Broom_type), size = 2) +
+  geom_point(size=5, mapping = aes(color = Broom_type)) +
+  theme_minimal() +
+  xlab("") +
+  ylab("") +
+  ggtitle("Brooklyn") + scale_color_manual(values = gradient2) +tema1
+  
+brooklyn <- brooklyn + scale_y_continuous(limits = c(0,750), expand = c(0,0))  + coord_polar()
+
+
+### Manhattan ####
+pManhattan <- pplot %>%
+  filter(neighbourhood.group == "Manhattan") %>%
+  group_by(neighbourhood.group) %>%
+  select(room.type, price, review.rate.number)
+
+Mmean_room_type <- aggregate(list(Maverage_price = pManhattan$price), list(Mroom_type = pManhattan$room.type), mean)
+
+Manhattan <- ggplot(data = Mmean_room_type, aes(x=Mroom_type, y=Maverage_price)) +
+  geom_segment(aes(xend=Mroom_type, yend=0, color = Mroom_type), size = 2) +
+  geom_point(size=5, mapping = aes(color = Mroom_type)) +
+  theme_minimal() +
+  xlab("") +
+  ylab("") +
+  ggtitle("Manhattan") + scale_color_manual(values = gradient2) +
+  tema1
+Manhattan <- Manhattan + scale_y_continuous(limits = c(0,750), expand = c(0,0))  + coord_polar()
+
+#### QUEENS ####
+
+pQueens <- pplot %>%
+  filter(neighbourhood.group == "Queens") %>%
+  group_by(neighbourhood.group) %>%
+  select(room.type, price, review.rate.number)
+
+Qmean_room_type <- aggregate(list(Qaverage_price = pQueens$price), list(Qroom_type = pQueens$room.type), mean)
+
+Queens <- ggplot(data = Qmean_room_type, aes(x=Qroom_type, y= Qaverage_price)) +
+  geom_segment(aes(xend= Qroom_type, yend=0, color = Qroom_type), size = 2) +
+  geom_point(size=5, mapping = aes(color = Qroom_type)) +
+  theme_minimal() +
+  xlab("") +
+  ylab("") +
+  ggtitle("Queens")  + scale_color_manual(values = gradient2) +
+  tema1
+Queens <- Queens + scale_y_continuous(limits = c(0,750), expand = c(0,0))  + coord_polar()
+
+#### Bronx ###
+
+pBronx <- pplot %>%
+  filter( neighbourhood.group == "Bronx") %>%
+  group_by(neighbourhood.group)
+
+bmean_room_type <- aggregate(list(baverage_price = pBronx$price), list(broom_type = pBronx$room.type), mean)
+
+Bronx <- ggplot(data = bmean_room_type, aes(x=broom_type, y= baverage_price)) +
+  geom_segment(aes(xend= broom_type, yend=0, color = broom_type), size = 2) +
+  geom_point(size=5, mapping = aes(color = broom_type)) +
+  theme_minimal() +
+  xlab("") +
+  ylab("") +
+  ggtitle("Bronx") + scale_color_manual(values = gradient2) +
+  tema1
+Bronx <- Bronx + scale_y_continuous(limits = c(0,750), expand = c(0,0))  + coord_polar()
+
+#### Staten Island #####
+
+pStaten <- pplot %>%
+  filter( neighbourhood.group == "Staten Island") %>%
+  group_by(neighbourhood.group)
+
+Smean_room_type <- aggregate(list(Saverage_price = pStaten$price), list(Sroom_type = pStaten$room.type), mean)
+
+Staten <- ggplot(data = Smean_room_type, aes(x=Sroom_type, y= Saverage_price)) +
+  geom_segment(aes(xend= Sroom_type, yend=0, color = Sroom_type), size = 2) +
+  geom_point(size=5, mapping = aes(color = Sroom_type)) +
+  theme_minimal() +
+  xlab("") +
+  ylab("") +
+  ggtitle("Staten Island") + scale_color_manual(values = gradient2) +
+  tema1
+Staten <- Staten + scale_y_continuous(limits = c(0,750), expand = c(0,0))  + coord_polar()
+
+
+
+p <- grid.arrange(brooklyn + coord_polar() , Manhattan+ coord_polar(), Queens+ coord_polar(), Bronx+ coord_polar(), Staten+ coord_polar() ,nrow = 2, top="Average Price for each roomtype across different neighbourhood groups")
+```
+
+**Insight:** The polar chart represents the price variation of different room types across the boroughs. Although the average price range is almost the same, boroughs like Manhattan and Brooklyn charge more for Hotel rooms whereas Queens has a lower price for the same.
+
+## Section 3: Guest Feedback: An Insider's Look at Airbnb Ratings
+
+#### Q1. Does the host identity play a role in the reviews given by the Airbnb customers?
+
+```{r section3 a, echo=FALSE, warning= FALSE, message=FALSE}
+
+# Grouping by the Borough, reviews and hosts and calculating their total 
+review_year <- air_df %>% select(c(neighbourhood.group, review.rate.number, host_identity_verified))%>% group_by(neighbourhood.group, host_identity_verified, review.rate.number) %>% summarise(total= length(neighbourhood.group))
+
+# plot the graph
+ggplot(data = review_year,
+       aes(axis1 = neighbourhood.group, axis2 = review.rate.number,y = total)) +
+  scale_x_discrete(limits = c('Boroughs','Review'), expand = c(0.15, 0.05)) +  # set the scale of discrete x value
+  geom_alluvium(aes(fill = host_identity_verified)) +   # plot the alluvium graph by filling the value of gender in it
+  geom_stratum() +
+  scale_fill_manual(values = c("#2f4b7c", "#d45087")) +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 2) +
+  # set the text for the graph
+  ggtitle("Effect of Host Identity on Reviews for each Borough")+
+  theme_minimal()
+```
+
+**Insight:** The identity of the Airbnb owner can sometimes have an impact on the reviews left by guests, but it is not a determining factor. There are many other factors that can influence the guest's experience and their decision to leave a review, such as the cleanliness of the property, the location, the amenities, the communication with the host, and the overall value for money.
+
+#### Q2. Which areas get the nest reviews on Airbnb?
+
+**Average Price as per Neighbourhoods**
+
+```{r section 3b, echo=FALSE, warning= FALSE, message=FALSE}
+
+# Slicing the dataframe to find the first values of each neighbourhood
+nbhd <- air_df %>%
+  group_by(neighbourhood) %>%
+  slice_head(n = 1)
+# Considering the latitudes and longitudes
+nbhd <- subset(nbhd, select = c('neighbourhood', 'lat', 'long'))
+
+# Grouping by neighbourhoods to summarise the mean rating
+avg_rat <- air_df %>% group_by(neighbourhood) %>% summarise(rating = mean(review.rate.number))
+
+# Merging the average rating(avg_rat) and neighbourhood(nbhd) dataframes
+avg_rat <- merge(avg_rat, nbhd, by = 'neighbourhood')
+avg_rat$rating <- round(avg_rat$rating, 2)
+
+# Declaring the hover labels
+nbd_label <- paste("<strong>Neigbourhood: </strong>", avg_rat$neighbourhood,
+                   "<br><strong>Average Rating: </strong>", avg_rat$rating) %>% lapply(htmltools::HTML)
+
+# Declaring the color palette
+domain <- range(avg_rat$rating)
+pal <- colorNumeric(palette = gradient, domain = domain)
+
+# Decalring title
+title <- tags$div(
+  tag.map.title, HTML("Average Ratings as per Neighbourhoods")
+)  
+
+# Plotting leaflet map of average rating as per neighbourhood
+leaflet(avg_rat) %>%
+  addTiles() %>%
+  setView(-74.00, 40.71, zoom = 10) %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  addCircleMarkers(lat = avg_rat$lat, lng = avg_rat$long, radius = 1, label = nbd_label,color = ~pal(rating), opacity=1) %>% addLegend(pal = pal, values = ~rating, opacity = 0.9, title = "Average Rating", position="topleft")%>%addControl(title, position = "topleft", className="map-title")
+```
+
+**Insight:** The **interactive** geographic map can assist visitors in locating most preferred lodging options in various neighborhoods. Bronx and Manhattan have better ratings than other neighborhoods throughout the city.
+
+#### Q3. Finding the most preferred neighbourhoods in the lowest rated borough.
+
+```{r section 3c, echo=FALSE, warning= FALSE, message=FALSE}
+# Considering only Staten Island
+statis <- subset(air_df, neighbourhood.group == 'Staten Island')
+
+# Plotting boxplot of the ratings in Staten Island and differentiating them by price              
+plt <- plot_ly(statis, x = ~neighbourhood, y = ~review.rate.number, color = ~price, colors = gradient, type = "box") %>% layout(title = "Rating Distribution in Brooklyn",
+         xaxis = list(title = "Neighbourhood"),
+         yaxis = list(title = "Rating"))
+plt
+```
+
+**Insight:** The neighbourhoods Castleton Corners, Huguenot, Silver Lake, Shore Acres, South Beach, Port Richmond located at the shore of Staten Island have higher ratings for the same price.
+
+# Conclusion:
+
+The study demonstrated that the reputation management system, including ratings and reviews play a crucial role in attracting potential guests to a property. The significance of location and neighbourhood characteristics, as well as the availability of properties, determines the success of a property listing on Airbnb. Properties that are located in popular and attractive neighbourhoods, such as central city locations or near popular attractions, tend to command a higher price and have a higher booking rate.
+
+In conclusion, the case study highlights the importance of considering price, reviews, availability and location when listing a property on Airbnb. Hosts must take into account local real estate market conditions, neighbourhood characteristics, and other demand drivers when setting the price of their property to ensure that it is competitive and profitable. By using data-driven insights and market trends, hosts can make informed decisions about the price and location of their property to maximize its success on Airbnb.
