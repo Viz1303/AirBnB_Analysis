@@ -14,5 +14,8 @@ Throughout this project, we have employed various powerful R packages, including
 
 The project provides an opportunity to delve into the wealth of Airbnb data, apply advanced analytical techniques, and draw actionable conclusions. By examining the performance of Airbnb listings in a specific timeframe and location, we can identify patterns, trends, and potential lessons that can be learned from Airbnb's success story.
 
+You can find the dataset from the following [link to Kaggle](https://www.kaggle.com/datasets/dgomonov/new-york-city-airbnb-open-data).
+
+
 Please note that the package names mentioned here, including dplyr, ggplot2, plotly, and tidyr, are just a few examples of the packages utilized in this project.
 
